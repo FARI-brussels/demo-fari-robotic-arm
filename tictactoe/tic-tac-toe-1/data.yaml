@@ -1,0 +1,14 @@
+names:
+- O
+- X
+- grid
+nc: 3
+roboflow:
+  license: CC BY 4.0
+  project: tic-tac-toe-nj8h0
+  url: https://universe.roboflow.com/simeonmcl-gmail-com/tic-tac-toe-nj8h0/dataset/1
+  version: 1
+  workspace: simeonmcl-gmail-com
+test: ./test/images
+train: ./train/images
+val: ./valid/images
