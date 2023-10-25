@@ -1,8 +1,8 @@
 task: detect
 mode: train
 model: yolov8s.pt
-data: /home/mrcyme/Documents/FARI/repositories/demo-fari-robotic-arm/tictactoe/tic-tac-toe-1/data.yaml
-epochs: 100
+data: /home/fari/Documents/demo-fari-robotic-arm/tictactoe/tictactoe-1/data.yaml
+epochs: 25
 patience: 50
 batch: 16
 imgsz: 640
@@ -27,7 +27,6 @@ resume: false
 amp: true
 fraction: 1.0
 profile: false
-freeze: null
 overlap_mask: true
 mask_ratio: 4
 dropout: 0.0
@@ -49,7 +48,6 @@ save_crop: false
 show_labels: true
 show_conf: true
 vid_stride: 1
-stream_buffer: false
 line_width: null
 visualize: false
 augment: false
@@ -94,5 +92,6 @@ mosaic: 1.0
 mixup: 0.0
 copy_paste: 0.0
 cfg: null
+v5loader: false
 tracker: botsort.yaml
-save_dir: runs/detect/train3
+save_dir: runs/detect/train

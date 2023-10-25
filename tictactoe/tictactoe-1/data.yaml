@@ -1,0 +1,14 @@
+names:
+- O
+- X
+- grid
+nc: 3
+roboflow:
+  license: CC BY 4.0
+  project: tictactoe-kpr4t
+  url: https://universe.roboflow.com/te-xkrgm/tictactoe-kpr4t/dataset/1
+  version: 1
+  workspace: te-xkrgm
+test: ../test/images
+train: train/images
+val: valid/images
