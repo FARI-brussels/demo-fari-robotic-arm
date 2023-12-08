@@ -1,0 +1,88 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #eef;
+    margin: 0;
+    padding: 0;
+  }
+  .title {
+    text-align: center;
+    font-size: 24px;
+    margin: 20px;
+    color: #333;
+  }
+  .container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    margin-top: -50px;
+  }
+  .video-container {
+    width: 40%;
+    margin-bottom: 20px;
+  }
+  video {
+    width: 100%;
+    border: 5px solid #555;
+    border-radius: 10px;
+  }
+
+
+  /* Additional styles for the switch-container */
+.switch-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 200px; /* Adjust as needed */
+    background-color: #ddd;
+    border-radius: 20px;
+    padding: 10px;
+    box-sizing: border-box;
+  }
+  
+  /* Slider Styles */
+  .slider {
+    position: relative;
+    width: 100px;
+    height: 40px;
+  }
+  
+  .slider input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+  
+  .slider .slider-inner {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 34px;
+  }
+  
+  .slider .slider-inner:before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+  }
+  
+  input:checked + .slider-inner {
+    background-color: #f44336;
+  }
+  
+  input:checked + .slider-inner:before {
+    transform: translateX(74px);
+  }
+  

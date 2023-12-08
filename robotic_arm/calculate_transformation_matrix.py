@@ -43,7 +43,7 @@ def apply_inverse_transformation(transformation_matrix, point):
     transformed_point = np.dot(inverse_transformation_matrix, point)
     return transformed_point
 
-
+"""
 # Example usage
 points = np.array([(199, 276), (197, 443)])
 transformed_points = np.array([(0, 0), (0, 160)])
@@ -59,3 +59,4 @@ print("Transformed Point:", transformed_point)
 # Apply inverse transformation
 inverse_transformed_point = apply_inverse_transformation(transformation_matrix, transformed_point)
 print("Inverse Transformed Point:", inverse_transformed_point)
+"""

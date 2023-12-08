@@ -115,20 +115,25 @@ class RobotMain(object):
             return False
 
     # Robot Main Run
-    def draw_o(self, x, y, z, r, lift_height=20.0):
+    def draw_o(self, x, y, z, d, rest_position=(0,0,20), lift_height=10.0, tcp_speed=10, tcp_acc=1000):
         try:
+            r=d/2
+            code = self._arm.close_lite6_gripper()
+            print(code)
             # Draw Cricle
-            self._tcp_speed = 10
-            self._tcp_acc = 1000
+            self._tcp_speed = tcp_speed
+            self._tcp_acc = tcp_acc
             z_lifting = z + lift_height 
             code = self._arm.set_position(*[x-r, y, z_lifting, 200, 0.0, 0.0], speed=self._tcp_speed, mvacc=self._tcp_acc, radius=0.0, wait=False)
             code = self._arm.set_position(*[x-r, y, z, 200, 0.0, 0.0], speed=self._tcp_speed, mvacc=self._tcp_acc, radius=0.0, wait=False)
             if not self._check_code(code, 'set_position'):
                 return
-            code = self._arm.move_circle([x, y+r, z, 200, 0.0, 0.0], [x+r, y, z, 200, 0.0, 0.0], float(90), speed=self._tcp_speed, mvacc=self._tcp_acc, wait=True)
+            code = self._arm.move_circle(*[x, y+r, z, 200, 0.0, 0.0], [x+r, y, z, 200, 0.0, 0.0], float(90), speed=self._tcp_speed, mvacc=self._tcp_acc, wait=True)
+            code = self._arm.set_position(*[x-r, y, z_lifting, 200, 0.0, 0.0], speed=self._tcp_speed, mvacc=self._tcp_acc, radius=0.0, wait=False)
             code = self._arm.set_position(*[x-r, y, z_lifting, 200, 0.0, 0.0], speed=self._tcp_speed, mvacc=self._tcp_acc, radius=0.0, wait=False)
             if not self._check_code(code, 'move_circle'):
                 return
+            code = self._arm.set_position(*rest_position, 200, 0.0, 0.0, speed=self._tcp_speed, mvacc=self._tcp_acc, radius=0.0, wait=False)
         except Exception as e:
             self.pprint('MainException: {}'.format(e))
         self.alive = False
@@ -137,10 +142,11 @@ class RobotMain(object):
         if hasattr(self._arm, 'release_count_changed_callback'):
             self._arm.release_count_changed_callback(self._count_changed_callback)
 
-    def draw_x(self, x, y, z, length, lift_height=20.0):
+    def draw_x(self, x, y, z, length, rest_position=(0,0,20), lift_height=10.0, tcp_speed=10, tcp_acc=1000):
         try:
-            self._tcp_speed = 10
-            self._tcp_acc = 1000
+            self._arm.close_lite6_gripper()
+            self._tcp_speed = tcp_speed
+            self._tcp_acc = tcp_acc
 
             # Calculate end points of the first line
             x1, y1 = x - length / 2, y - length / 2
@@ -166,6 +172,7 @@ class RobotMain(object):
             # Draw the second line
             self._arm.set_position(x4, y4, z, 200.0, 0.0, 0.0, speed=self._tcp_speed, mvacc=self._tcp_acc, radius=20.0, wait=True)
             self._arm.set_position(x4, y4, z_lifting, 200.0, 0.0, 0.0, speed=self._tcp_speed, mvacc=self._tcp_acc, radius=20.0, wait=True)
+            self._arm.set_position(*rest_position, 200, 0.0, 0.0, speed=self._tcp_speed, mvacc=self._tcp_acc, radius=20.0, wait=False)
 
         except Exception as e:
             self.pprint('MainException: {}'.format(e))

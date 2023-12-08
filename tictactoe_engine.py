@@ -2,16 +2,12 @@
 Receive the real world positions of grid, x and o and return the position and letter of the next move
 """
 import random
-from flask import Flask, request, jsonify
-import json
+import numpy as np
 
-app = Flask(__name__)
 
-GRID_SIZE = None
-
-def infer_tic_tac_toe_state(bounding_boxes):
+def infer_tic_tac_toe_state(bounding_boxes_dict):
     # Extract the bounding box of the grid
-    grid_center_x, grid_center_y, grid_w, grid_h = bounding_boxes['grid'][0]
+    grid_center_x, grid_center_y, grid_w, grid_h = bounding_boxes_dict['grid'][0]
     cell_w = grid_w / 3
     cell_h = grid_h / 3
     GRID_SIZE = cell_w, cell_h
@@ -29,12 +25,12 @@ def infer_tic_tac_toe_state(bounding_boxes):
     grid_state = [[' ' for _ in range(3)] for _ in range(3)]
     
     # Fill in the 'X' marks
-    for position in bounding_boxes.get('X', []):
+    for position in bounding_boxes_dict.get('X', []):
         row, col = get_cell(position[:2])
         grid_state[row][col] = 'X'
     
     # Fill in the 'O' marks
-    for position in bounding_boxes.get('O', []):
+    for position in bounding_boxes_dict.get('O', []):
         row, col = get_cell(position[:2])
         grid_state[row][col] = 'O'
 
@@ -134,30 +130,6 @@ def find_best_move(board):
 
 
 
-def get_cell_center(index, grid_bbox):
-    """
-    Get the world coordinates of the center of the grid cell.
-
-    Parameters:
-    - index: tuple of row, column (0-indexed) of the cell.
-    - grid_bbox: bounding box of the grid in the format (center_x, center_y, width, height)
-
-    Returns:
-    tuple (x, y) representing the world coordinates of the center of the cell.
-    """
-
-    row, col = index
-    center_x, center_y, width, height = grid_bbox
-
-    cell_width = width / 3
-    cell_height = height / 3
-
-    x = center_x - width / 2 + (col + 0.5) * cell_width
-    y = center_y - height / 2 + (row + 0.5) * cell_height
-
-    return (x, y)
-
-
 def check_win(board):
     # Check rows, columns, and diagonals for a win
     for i in range(3):
@@ -178,33 +150,31 @@ def check_win(board):
 
     return False, None
 
-def play(bboxes):
-    grid_state = infer_tic_tac_toe_state(bboxes)
-    move, player_letter = find_best_move(grid_state)
-    if not move:
-        print("fini game over")
-    else:
-        position = get_cell_center(move, bboxes['grid'][0])
-        return position
+    
+def get_cell_center_and_shorter_edge(index, grid_bbox):
+    """
+    Get the world coordinates of the center of the grid cell and the length of its shorter edge.
+
+    Parameters:
+    - index: tuple of row, column (0-indexed) of the cell.
+    - grid_bbox: bounding box of the grid in the format (center_x, center_y, width, height)
+
+    Returns:
+    - tuple (x, y) representing the world coordinates of the center of the cell.
+    - shorter_edge_length: float representing the length of the shorter edge of the cell.
+    """
+
+    row, col = index
+    center_x, center_y, width, height = grid_bbox
+
+    cell_width = width / 3
+    cell_height = height / 3
+
+    x = center_x - width / 2 + (col + 0.5) * cell_width
+    y = center_y - height / 2 + (row + 0.5) * cell_height
+
+    shorter_edge_length = min(cell_width, cell_height)
+
+    return (x, y), shorter_edge_length
 
 
-
-@app.route('/play', methods=['POST'])
-def play():
-    if request.method == 'POST':
-        try:
-            data = request.json
-            position, letter = get_next_move(data['bounding_boxes'])
-            response = {
-                "position": position,
-                "letter": letter
-            }
-            print(response, letter)
-            return jsonify(response), 200
-        except Exception as e:
-            return jsonify({"error": str(e)}), 500
-        
-
-
-if __name__ == "__main__":
-    app.run(debug=True)
