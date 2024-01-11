@@ -142,7 +142,7 @@ class RobotMain(object):
         if hasattr(self._arm, 'release_count_changed_callback'):
             self._arm.release_count_changed_callback(self._count_changed_callback)
 
-    def draw_x(self, x, y, z, length, rest_position=(0,0,20), lift_height=10.0, tcp_speed=10, tcp_acc=1000):
+    def draw_x(self, x, y, z, length, rest_position=(0,0,20), lift_height=10.0, tcp_speed=30, tcp_acc=1000):
         try:
             self._arm.close_lite6_gripper()
             self._tcp_speed = tcp_speed

@@ -23,8 +23,8 @@ except:
 MTX, DIST, H = load_coefficients("calibration/calibration.yml")
 MODEL = YOLO("vision/runs/detect/train2/weights/best.pt")
 CLASS_NAMES = ["O", "X", "grid"]
-calibration_points = np.array([(262, 263), (253, 428)])
-transformed_points = np.array([(0, 0), (0, 160)])
+calibration_points = np.array([(284, 166), (274, 369)])
+transformed_points = np.array([(0, 0), (0, 200)])
 #to transform image coordinate to TCP coordinates
 transformation_matrix = calculate_transformation_matrix(calibration_points , transformed_points)
 
@@ -53,7 +53,7 @@ def gen_frames():
         frame = preprocess_image(frame, MTX, DIST, H, width=560, height=440)
         
         # Perform YOLO detection
-        results = MODEL(frame, stream=True)
+        results = MODEL(frame, stream=False)
         for r in results:
             bboxes = preprocess_bboxes(r.boxes, CLASS_NAMES)
             frame = add_bbox_to_img(frame, bboxes)
@@ -145,7 +145,6 @@ def get_rest_position(bboxes):
 @app.route('/play', methods=['POST'])
 def play():
     if request.method == 'POST':
-        print("yooooo")
         try:
             global bboxes
             print(bboxes)
@@ -156,13 +155,15 @@ def play():
             rest_position = get_rest_position(bboxes)
             transformed_rest_position = apply_inverse_transformation(transformation_matrix, [rest_position[0], rest_position[1], 1])
             if player_letter== "X":
-                ROBOT.draw_x(transformed_point[0], transformed_point[1],  0, shortest_edge/2, rest_position=(transformed_rest_position[0],transformed_rest_position[1], 10), tcp_speed=10, tcp_acc=100)
+                ROBOT.draw_x(transformed_point[0], transformed_point[1],  0, shortest_edge/2, rest_position=(transformed_rest_position[0],transformed_rest_position[1], 10), tcp_speed=200, tcp_acc=100)
+                response = "your turn"
             else:
-                ROBOT.draw_o(transformed_point[0], transformed_point[1],  0, shortest_edge/2, rest_position=(rest_position[0],rest_position[1], 10), tcp_speed=10, tcp_acc=100)
+                ROBOT.draw_o(transformed_point[0], transformed_point[1],  0, shortest_edge/2, rest_position=(rest_position[0],rest_position[1], 10), tcp_speed=100, tcp_acc=100)
                 response = "your turn"
             return jsonify(response), 200
         
         except Exception as e:
+            raise e
             return jsonify({"error": str(e)}), 500
 
 

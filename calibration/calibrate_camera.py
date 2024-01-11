@@ -1,6 +1,6 @@
 """
 use it like 
-python calibrate_camera.py /home/fari/Pictures/calibrationcheckerboard/calibration jpg /home/fari/Pictures/calibrationcheckerboard/ref_plan.jpg 2.5 10 7 ./calibration.yml 
+python calibrate_camera.py /home/fari/Pictures/calibrationcheckerboard/calibration jpg /home/fari/Pictures/calibrationcheckerboard/ref_plan.jpg 25 10 7 ./calibration.yml 
 """
 import argparse
 import numpy as np
@@ -94,6 +94,8 @@ def find_homography(ref_plan, mtx, dist, width, height, square_size):
     # Define the points for the perfect grid in standard coordinates
     objp = np.zeros((height*width, 2), np.float32)
     objp[:, :2] = np.mgrid[0:width, 0:height].T.reshape(-1, 2)*square_size
+    # Translate the object points by (25, 25) to shift the origin to the upper right corner of the calibration checkerboard 
+    objp += np.array([25, 25], dtype=np.float32)
     # Compute the homography matrix
     homography, status = cv2.findHomography(corners, objp)
     
@@ -245,7 +247,7 @@ def preprocess_image(img, mtx, dist, H,  width=640, height=480):
     
 
 
-def batch_preprocess_images(input_folder, output_folder, calibration_path, width=640, height=480, square_size=25):
+def batch_preprocess_images(input_folder, output_folder, calibration_path, width=640, height=480):
     mtx, dist, H = load_coefficients(calibration_path)
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)

@@ -1,0 +1,55 @@
+127.0.0.1 - - [08/Dec/2023 10:41:35] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [08/Dec/2023 10:41:35] "GET /style.css HTTP/1.1" 200 -
+127.0.0.1 - - [08/Dec/2023 10:41:35] "GET /app.js HTTP/1.1" 200 -
+127.0.0.1 - - [08/Dec/2023 10:52:35] "GET / HTTP/1.1" 304 -
+127.0.0.1 - - [08/Dec/2023 10:52:35] "GET /app.js HTTP/1.1" 304 -
+127.0.0.1 - - [11/Dec/2023 09:18:33] "GET / HTTP/1.1" 304 -
+127.0.0.1 - - [11/Dec/2023 09:18:33] "GET /style.css HTTP/1.1" 304 -
+127.0.0.1 - - [11/Dec/2023 09:18:33] "GET /app.js HTTP/1.1" 304 -
+Traceback (most recent call last):
+  File "/home/fari/Documents/demo-fari-robotic-arm/frontend/server.py", line 13, in <module>
+    with socketserver.TCPServer(("", PORT), MyHandler) as httpd:
+  File "/usr/lib/python3.10/socketserver.py", line 452, in __init__
+    self.server_bind()
+  File "/usr/lib/python3.10/socketserver.py", line 466, in server_bind
+    self.socket.bind(self.server_address)
+OSError: [Errno 98] Address already in use
+127.0.0.1 - - [12/Dec/2023 17:12:18] "GET / HTTP/1.1" 304 -
+127.0.0.1 - - [12/Dec/2023 17:12:18] "GET /style.css HTTP/1.1" 304 -
+127.0.0.1 - - [12/Dec/2023 17:12:18] "GET /app.js HTTP/1.1" 304 -
+127.0.0.1 - - [14/Dec/2023 16:47:55] "GET / HTTP/1.1" 304 -
+127.0.0.1 - - [14/Dec/2023 16:47:55] "GET /style.css HTTP/1.1" 304 -
+127.0.0.1 - - [14/Dec/2023 16:47:55] "GET /app.js HTTP/1.1" 304 -
+127.0.0.1 - - [21/Dec/2023 13:18:21] "GET / HTTP/1.1" 304 -
+127.0.0.1 - - [21/Dec/2023 13:18:21] "GET /style.css HTTP/1.1" 304 -
+127.0.0.1 - - [21/Dec/2023 13:18:21] "GET /app.js HTTP/1.1" 304 -
+127.0.0.1 - - [02/Jan/2024 13:25:34] "GET / HTTP/1.1" 304 -
+127.0.0.1 - - [02/Jan/2024 13:25:34] "GET /style.css HTTP/1.1" 304 -
+127.0.0.1 - - [02/Jan/2024 13:25:34] "GET /app.js HTTP/1.1" 304 -
+Traceback (most recent call last):
+  File "/home/fari/Documents/demo-fari-robotic-arm/frontend/server.py", line 13, in <module>
+    with socketserver.TCPServer(("", PORT), MyHandler) as httpd:
+  File "/usr/lib/python3.10/socketserver.py", line 452, in __init__
+    self.server_bind()
+  File "/usr/lib/python3.10/socketserver.py", line 466, in server_bind
+    self.socket.bind(self.server_address)
+OSError: [Errno 98] Address already in use
+Traceback (most recent call last):
+  File "/home/fari/Documents/demo-fari-robotic-arm/frontend/server.py", line 13, in <module>
+    with socketserver.TCPServer(("", PORT), MyHandler) as httpd:
+  File "/usr/lib/python3.10/socketserver.py", line 452, in __init__
+    self.server_bind()
+  File "/usr/lib/python3.10/socketserver.py", line 466, in server_bind
+    self.socket.bind(self.server_address)
+OSError: [Errno 98] Address already in use
+Traceback (most recent call last):
+  File "/home/fari/Documents/demo-fari-robotic-arm/frontend/server.py", line 13, in <module>
+    with socketserver.TCPServer(("", PORT), MyHandler) as httpd:
+  File "/usr/lib/python3.10/socketserver.py", line 452, in __init__
+    self.server_bind()
+  File "/usr/lib/python3.10/socketserver.py", line 466, in server_bind
+    self.socket.bind(self.server_address)
+OSError: [Errno 98] Address already in use
+127.0.0.1 - - [11/Jan/2024 13:58:50] "GET / HTTP/1.1" 304 -
+127.0.0.1 - - [11/Jan/2024 13:58:50] "GET /style.css HTTP/1.1" 304 -
+127.0.0.1 - - [11/Jan/2024 13:58:50] "GET /app.js HTTP/1.1" 304 -
