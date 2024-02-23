@@ -3,12 +3,11 @@ const video = document.querySelector('video');
 
     toggleSwitch.addEventListener('change', function () {
       if (this.checked) {
-        console.log("yooo")
         // Call API endpoint
         fetch('http://localhost:8000/play', { method: 'POST' })
           .then(response => {
             if (response.ok) {
-              console.log("sbreeeeeeeeeee")
+              console.log(response)
               this.checked = false;
               statusSpan.textContent = "Your Turn";
             } else {

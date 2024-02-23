@@ -23,8 +23,8 @@ except:
 MTX, DIST, H = load_coefficients("calibration/calibration.yml")
 MODEL = YOLO("vision/runs/detect/train2/weights/best.pt")
 CLASS_NAMES = ["O", "X", "grid"]
-calibration_points = np.array([(284, 166), (274, 369)])
-transformed_points = np.array([(0, 0), (0, 200)])
+calibration_points = np.array([(267, 165), (251, 279)])
+transformed_points = np.array([(0, 0), (0, 120)])
 #to transform image coordinate to TCP coordinates
 transformation_matrix = calculate_transformation_matrix(calibration_points , transformed_points)
 
@@ -141,6 +141,27 @@ def get_rest_position(bboxes):
     else:
         return None
 
+def print_grid(grid_state):
+    text=""
+    for row in grid_state:
+        text+='|'.join(row)
+        text+='---------'
+    return text
+
+def print_next_move(grid_state, player_letter, move):
+    text = f"The best move for player {player_letter} is: {move}"
+    grid_state[move[0]][move[1]]=player_letter
+    text +=print_grid(grid_state)
+    return text
+
+def robot_play(player_letter, transformed_point, shortest_edge, grid_state):
+    if player_letter== "X":
+        ROBOT.grab_pen((191,43,24),tcp_speed=40)
+        ROBOT.draw_x(transformed_point[0], transformed_point[1],  0, shortest_edge/2, tcp_speed=340, tcp_acc=200)
+        ROBOT.store_pen((191,43,24), rest_position=(191,0,53),tcp_speed=40)
+    else:
+        ROBOT.draw_o(transformed_point[0], transformed_point[1],  0, shortest_edge/2, tcp_speed=30, tcp_acc=100)
+
 
 @app.route('/play', methods=['POST'])
 def play():
@@ -152,14 +173,8 @@ def play():
             move, player_letter = find_best_move(grid_state)
             position, shortest_edge = get_cell_center_and_shorter_edge(move,bboxes['grid'][0])
             transformed_point = apply_inverse_transformation(transformation_matrix, [position[0], position[1], 1])
-            rest_position = get_rest_position(bboxes)
-            transformed_rest_position = apply_inverse_transformation(transformation_matrix, [rest_position[0], rest_position[1], 1])
-            if player_letter== "X":
-                ROBOT.draw_x(transformed_point[0], transformed_point[1],  0, shortest_edge/2, rest_position=(transformed_rest_position[0],transformed_rest_position[1], 10), tcp_speed=200, tcp_acc=100)
-                response = "your turn"
-            else:
-                ROBOT.draw_o(transformed_point[0], transformed_point[1],  0, shortest_edge/2, rest_position=(rest_position[0],rest_position[1], 10), tcp_speed=100, tcp_acc=100)
-                response = "your turn"
+            robot_play(player_letter, transformed_point, shortest_edge, grid_state)
+            response = {"reasoning":{"grid_state" : print_grid(grid_state), "next_move": print_next_move(grid_state, player_letter, move)}}
             return jsonify(response), 200
         
         except Exception as e:

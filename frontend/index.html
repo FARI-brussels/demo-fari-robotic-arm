@@ -8,23 +8,30 @@
   <link rel="stylesheet" href="style.css"> <!-- Link to the external CSS file -->
 </head>
 <body>
-  <div class="title">
-    Play Tic Tac Toe with a Robotic Arm
+  <h1>Play Tic Tac Toe with a Robotic Arm</h1>
+  <div style="display:flex;">
+    <div class="box">
+      <h2>Perception</h2>
+      <div class="video-container">
+        <img id="video" src="http://localhost:8000/video_feed">
+      </div>
+    </div>
+    <div class="box">
+      <h2>Reasoning</h2>
+    </div>
+    <div class="box">
+      <h2>Planning</h2>
+    </div>
   </div>
-  <div class="container">
-    <div class="video-container">
-      <img id="video" src="http://localhost:8000/video_feed">
-    </div>
-    <div class="switch-container">
-      <span>Your Turn</span>
-      <label class="slider">
-        <input type="checkbox" id="toggleSwitch">
-        <span class="slider-inner"></span>
-      </label>
-      <span>Cobot's Turn</span>
-    </div>
+  <div class="switch-container">
+    <span>Your Turn</span>
+    <label class="slider">
+      <input type="checkbox" id="toggleSwitch">
+      <span class="slider-inner"></span>
+    </label>
+    <span>Cobot's Turn</span>
+  </div>
     
-  </div>
 
   <script src="app.js"></script> <!-- Link to the external JS file -->
 </body>

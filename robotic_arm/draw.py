@@ -172,8 +172,46 @@ class RobotMain(object):
             # Draw the second line
             self._arm.set_position(x4, y4, z, 200.0, 0.0, 0.0, speed=self._tcp_speed, mvacc=self._tcp_acc, radius=20.0, wait=True)
             self._arm.set_position(x4, y4, z_lifting, 200.0, 0.0, 0.0, speed=self._tcp_speed, mvacc=self._tcp_acc, radius=20.0, wait=True)
-            self._arm.set_position(*rest_position, 200, 0.0, 0.0, speed=self._tcp_speed, mvacc=self._tcp_acc, radius=20.0, wait=False)
+        
+        except Exception as e:
+            self.pprint('MainException: {}'.format(e))
+        finally:
+            self.alive = False
+            self._arm.release_error_warn_changed_callback(self._error_warn_changed_callback)
+            self._arm.release_state_changed_callback(self._state_changed_callback)
+            if hasattr(self._arm, 'release_count_changed_callback'):
+                self._arm.release_count_changed_callback(self._count_changed_callback)
 
+    def grab_pen(self, pen_position, rest_position=(116,192,53), lift_height=50.0, tcp_speed=30, tcp_acc=1000):
+        try:
+            self._tcp_speed = tcp_speed
+            self._tcp_acc = tcp_acc
+            self._arm.open_lite6_gripper()
+            self._arm.set_position(pen_position[0], pen_position[1], pen_position[2]+lift_height, -180, 0.0, 90, speed=self._tcp_speed, mvacc=self._tcp_acc, radius=50.0, wait=True)
+            self._arm.set_position(pen_position[0], pen_position[1], pen_position[2], -180, 0.0, 90, speed=self._tcp_speed, mvacc=self._tcp_acc, radius=50.0, wait=True)
+            self._arm.close_lite6_gripper()
+            time.sleep(1)
+            self._arm.set_position(pen_position[0], pen_position[1], pen_position[2]+lift_height, -180, 0.0, 50, speed=self._tcp_speed, mvacc=self._tcp_acc, radius=50.0, wait=True)
+            self._arm.set_position(*rest_position, 200, 0.0, 0.0, speed=self._tcp_speed, mvacc=self._tcp_acc, radius=50.0, wait=False)
+        except Exception as e:
+            self.pprint('MainException: {}'.format(e))
+        finally:
+            self.alive = False
+            self._arm.release_error_warn_changed_callback(self._error_warn_changed_callback)
+            self._arm.release_state_changed_callback(self._state_changed_callback)
+            if hasattr(self._arm, 'release_count_changed_callback'):
+                self._arm.release_count_changed_callback(self._count_changed_callback)
+
+    def store_pen(self, pen_position, rest_position=(116,192,53), lift_height=50.0, tcp_speed=30, tcp_acc=1000):
+        try:
+            self._tcp_speed = tcp_speed
+            self._tcp_acc = tcp_acc
+            self._arm.set_position(pen_position[0], pen_position[1], pen_position[2]+lift_height, -180, 0.0, 90, speed=self._tcp_speed, mvacc=self._tcp_acc, radius=20.0, wait=True)
+            self._arm.set_position(pen_position[0], pen_position[1], pen_position[2]+lift_height/4, -180, 0.0, 90, speed=self._tcp_speed, mvacc=self._tcp_acc, radius=20.0, wait=True)
+            self._arm.open_lite6_gripper()
+            self._arm.set_position(pen_position[0], pen_position[1], pen_position[2]+lift_height, -180, 0.0, 90, speed=self._tcp_speed, mvacc=self._tcp_acc, radius=20.0, wait=True)
+            self._arm.set_position(*rest_position,-180, 0.0, 90, speed=self._tcp_speed, mvacc=self._tcp_acc, radius=20.0, wait=False)
+            self._arm.stop_lite6_gripper()
         except Exception as e:
             self.pprint('MainException: {}'.format(e))
         finally:
@@ -186,10 +224,10 @@ class RobotMain(object):
 
 
 
+
 if __name__ == '__main__':
     RobotMain.pprint('xArm-Python-SDK Version:{}'.format(version.__version__))
     arm = XArmAPI('192.168.1.159', baud_checkset=False)
     robot_main = RobotMain(arm)
     #robot_main.draw_x(100, 294,  0, 20)
     robot_main.draw_o(100, 294,  0, 10)
-
