@@ -9,6 +9,7 @@ from xarm import version
 from xarm.wrapper import XArmAPI
 from robotic_arm.draw import RobotMain
 from robotic_arm.calculate_transformation_matrix import calculate_transformation_matrix, apply_inverse_transformation
+from threading import Thread
 
 
 try:
@@ -154,6 +155,7 @@ def print_next_move(grid_state, player_letter, move):
     text +=print_grid(grid_state)
     return text
 
+
 def robot_play(player_letter, transformed_point, shortest_edge, grid_state):
     if player_letter== "X":
         ROBOT.grab_pen((191,43,24),tcp_speed=40)
@@ -173,8 +175,16 @@ def play():
             move, player_letter = find_best_move(grid_state)
             position, shortest_edge = get_cell_center_and_shorter_edge(move,bboxes['grid'][0])
             transformed_point = apply_inverse_transformation(transformation_matrix, [position[0], position[1], 1])
-            robot_play(player_letter, transformed_point, shortest_edge, grid_state)
-            response = {"reasoning":{"grid_state" : print_grid(grid_state), "next_move": print_next_move(grid_state, player_letter, move)}}
+            # Start the robot_play function in a separate thread
+            thread = Thread(target=robot_play, args=(player_letter, transformed_point, shortest_edge, grid_state))
+            thread.start()
+
+            response = {
+                "reasoning": {
+                    "grid_state": print_grid(grid_state),
+                    "next_move": print_next_move(grid_state, player_letter, move)
+                }
+            }
             return jsonify(response), 200
         
         except Exception as e:
