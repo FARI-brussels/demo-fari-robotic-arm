@@ -1,6 +1,7 @@
 const video = document.querySelector('video');
 const toggleSwitch = document.getElementById('toggleSwitch');
 const reasoningDiv = document.getElementById('reasoning'); // Get the reasoning div
+const planningDiv = document.getElementById('planning'); // Get the planning div
 
 toggleSwitch.addEventListener('change', function () {
   if (this.checked) {
@@ -10,12 +11,18 @@ toggleSwitch.addEventListener('change', function () {
         if (response.ok) {
           return response.json(); // Parse the JSON of the response
         } else {
-          throw new Error('Network response was not ok');
+          throw new Error('Network response was not ok.');
         }
       })
       .then(data => {
         // Update reasoning div with grid_state and next_move
         reasoningDiv.innerHTML = `<h3>Grid State:</h3><p>${data.reasoning.grid_state}</p><h3>Next Move:</h3><p>${data.reasoning.next_move}</p>`;
+
+        // Display the base64-encoded image in the planning div
+        const image = new Image(); // Create a new Image element
+        image.src = 'data:image/jpeg;base64,' + data.frame; // Set the source to the base64-encoded image
+        planningDiv.innerHTML = ''; // Clear the planning div before adding new content
+        planningDiv.appendChild(image); // Add the image to the planning div
       })
       .catch(error => {
         console.error('There has been a problem with your fetch operation:', error);

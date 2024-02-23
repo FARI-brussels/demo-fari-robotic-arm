@@ -10,6 +10,8 @@ from xarm.wrapper import XArmAPI
 from robotic_arm.draw import RobotMain
 from robotic_arm.calculate_transformation_matrix import calculate_transformation_matrix, apply_inverse_transformation
 from threading import Thread
+import base64
+from io import BytesIO
 
 
 try:
@@ -38,6 +40,7 @@ CORS(app)
 
 def gen_frames(): 
     global bboxes
+    global frame
     cap = cv2.VideoCapture(0)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
@@ -129,6 +132,22 @@ def add_bbox_to_img(img, boxes):
     
     return img
 
+def add_points_on_image(img, points, color=(0, 255, 0), size=10, thickness=-1):
+    for point in points:
+        cv2.circle(img, (int(point[0]), int(point[1])), size, color, thickness)
+    return img
+
+# Convert the image to a format suitable for JSON serialization
+def convert_image_to_base64(img, format='jpeg'):
+    # Convert the image to a memory buffer
+    is_success, buffer = cv2.imencode(f".{format}", img)
+    if not is_success:
+        raise ValueError("Could not convert image to buffer")
+    # Encode the buffer to base64
+    io_buf = BytesIO(buffer)
+    base64_str = base64.b64encode(io_buf.getvalue()).decode('utf-8')
+    return base64_str
+
 def get_rest_position(bboxes):
     """
     Calculate a rest position for the TCP that is not shadowing or preventing the camera to get the tictactoe grid well
@@ -170,7 +189,7 @@ def play():
     if request.method == 'POST':
         try:
             global bboxes
-            print(bboxes)
+            global frame
             grid_state = infer_tic_tac_toe_state(bboxes)
             move, player_letter = find_best_move(grid_state)
             position, shortest_edge = get_cell_center_and_shorter_edge(move,bboxes['grid'][0])
@@ -178,12 +197,13 @@ def play():
             # Start the robot_play function in a separate thread
             thread = Thread(target=robot_play, args=(player_letter, transformed_point, shortest_edge, grid_state))
             thread.start()
-
+            encoded_image = convert_image_to_base64(add_points_on_image(frame, [position], color=(0, 255, 0), size=10, thickness=-1))
             response = {
                 "reasoning": {
                     "grid_state": print_grid(grid_state),
                     "next_move": print_next_move(grid_state, player_letter, move)
-                }
+                },
+                "frame": encoded_image
             }
             return jsonify(response), 200
         
