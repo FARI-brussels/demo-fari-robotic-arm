@@ -7,9 +7,10 @@ const video = document.querySelector('video');
         fetch('http://localhost:8000/play', { method: 'POST' })
           .then(response => {
             if (response.ok) {
-              console.log(response)
-              this.checked = false;
-              statusSpan.textContent = "Your Turn";
+              console.log("re")
+              console.log(response.json())
+              //this.checked = false;
+              //statusSpan.textContent = "Your Turn";
             } else {
               throw new Error('Network response was not ok');
             }
@@ -21,22 +22,3 @@ const video = document.querySelector('video');
         statusSpan.textContent = "Your Turn";
       }
     });
-    function play() {
-      fetch('/play', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-      })
-      .then(response => response.json())
-      .then(data => {
-        console.log('Success:', data);
-        if(data.status === 'success') {
-          // Switch the slider back to "Your Turn"
-          document.getElementById('slider').checked = false;
-        }
-      })
-      .catch((error) => {
-        console.error('Error:', error);
-      });
-    }
