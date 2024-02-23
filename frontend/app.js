@@ -15,6 +15,7 @@ toggleSwitch.addEventListener('change', function () {
         }
       })
       .then(data => {
+        console.log("yu")
         // Update reasoning div with grid_state and next_move
         reasoningDiv.innerHTML = `<h3>Grid State:</h3><p>${data.reasoning.grid_state}</p><h3>Next Move:</h3><p>${data.reasoning.next_move}</p>`;
 
@@ -28,6 +29,30 @@ toggleSwitch.addEventListener('change', function () {
         console.error('There has been a problem with your fetch operation:', error);
       });
   } else {
-    statusSpan.textContent = "Your Turn";
+    console.error('ya');
   }
 });
+
+
+// Example function to convert grid state string to HTML table
+function gridStateToHTMLTable(gridState) {
+  // Split the grid state into rows
+  let rows = gridState.split('---------').map(row => row.trim().split('|'));
+
+  // Start building the table HTML
+  let tableHtml = '<table class="tic-tac-toe-grid">';
+
+  rows.forEach(row => {
+    tableHtml += '<tr>';
+    row.forEach(cell => {
+      tableHtml += `<td>${cell.trim() || '&nbsp;'}</td>`; // Use non-breaking space for empty cells
+    });
+    tableHtml += '</tr>';
+  });
+
+  tableHtml += '</table>';
+  return tableHtml;
+}
+
+// Then, inside your fetch response handling:
+

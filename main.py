@@ -33,6 +33,7 @@ transformation_matrix = calculate_transformation_matrix(calibration_points , tra
 
 #global bboxes variable
 bboxes = None
+plan_image = None
 
 app = Flask(__name__)
 CORS(app)
@@ -40,7 +41,7 @@ CORS(app)
 
 def gen_frames(): 
     global bboxes
-    global frame
+    global plan_image
     cap = cv2.VideoCapture(0)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
@@ -52,10 +53,9 @@ def gen_frames():
         ret, frame = cap.read()
         if not ret:
             break
-
         # Preprocess the frame
         frame = preprocess_image(frame, MTX, DIST, H, width=560, height=440)
-        
+        plan_image=frame
         # Perform YOLO detection
         results = MODEL(frame, stream=False)
         for r in results:
@@ -72,28 +72,6 @@ def gen_frames():
 
 
 def preprocess_bboxes(bboxes, class_names, conf_threshold=0.5):
-    """
-    Preprocesses bounding boxes (bboxes) by filtering them based on a confidence threshold and organizing them by class.
-
-    Args:
-        bboxes (list): A list of bounding box objects. Each object should have attributes 'conf' for confidence, 
-                       'xywh' for the bounding box coordinates (x, y, width, height), and 'cls' for the class index.
-        class_names (list): A list of class names corresponding to the class indices.
-        conf_threshold (float, optional): The confidence threshold for filtering bounding boxes. 
-                                          Default value is 0.5.
-
-    Returns:
-        dict: A dictionary with class names as keys and lists of bounding box coordinates as values. 
-              Each bounding box is represented by a list of its coordinates: [x, y, width, height].
-
-    Notes:
-        - Bounding box coordinates are extracted from the 'xywh' attribute of each bounding box object.
-        - The 'conf' attribute of each bounding box object is used to filter bounding boxes by the given 
-          confidence threshold.
-        - The class of each bounding box is determined by the 'cls' attribute, which is matched to the 
-          corresponding name in 'class_names'.
-        - Only bounding boxes with a confidence level higher than 'conf_threshold' are included in the result.
-    """
     result = {class_name: [] for class_name in class_names}
     for box in bboxes:
         conf = box.conf.item()
@@ -133,6 +111,7 @@ def add_bbox_to_img(img, boxes):
     return img
 
 def add_points_on_image(img, points, color=(0, 255, 0), size=10, thickness=-1):
+    print(type(img))
     for point in points:
         cv2.circle(img, (int(point[0]), int(point[1])), size, color, thickness)
     return img
@@ -165,7 +144,9 @@ def print_grid(grid_state):
     text=""
     for row in grid_state:
         text+='|'.join(row)
+        text+='\n'
         text+='---------'
+        text+='\n'
     return text
 
 def print_next_move(grid_state, player_letter, move):
@@ -189,7 +170,7 @@ def play():
     if request.method == 'POST':
         try:
             global bboxes
-            global frame
+            global plan_image
             grid_state = infer_tic_tac_toe_state(bboxes)
             move, player_letter = find_best_move(grid_state)
             position, shortest_edge = get_cell_center_and_shorter_edge(move,bboxes['grid'][0])
@@ -197,7 +178,7 @@ def play():
             # Start the robot_play function in a separate thread
             thread = Thread(target=robot_play, args=(player_letter, transformed_point, shortest_edge, grid_state))
             thread.start()
-            encoded_image = convert_image_to_base64(add_points_on_image(frame, [position], color=(0, 255, 0), size=10, thickness=-1))
+            encoded_image = convert_image_to_base64(add_points_on_image(plan_image, [position], color=(0, 255, 0), size=10, thickness=-1))
             response = {
                 "reasoning": {
                     "grid_state": print_grid(grid_state),
