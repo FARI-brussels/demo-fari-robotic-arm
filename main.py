@@ -158,9 +158,9 @@ def print_next_move(grid_state, player_letter, move):
 
 def robot_play(player_letter, transformed_point, shortest_edge, grid_state):
     if player_letter== "X":
-        ROBOT.grab_pen((191,43,24),tcp_speed=40)
-        ROBOT.draw_x(transformed_point[0], transformed_point[1],  0, shortest_edge/2, tcp_speed=340, tcp_acc=200)
-        ROBOT.store_pen((191,43,24), rest_position=(191,0,53),tcp_speed=40)
+        ROBOT.grab_pen((191,43,24),tcp_speed=2)
+        ROBOT.draw_x(transformed_point[0], transformed_point[1],  0, shortest_edge/2, tcp_speed=2, tcp_acc=200)
+        ROBOT.store_pen((191,43,24), rest_position=(191,0,53),tcp_speed=2)
     else:
         ROBOT.draw_o(transformed_point[0], transformed_point[1],  0, shortest_edge/2, tcp_speed=30, tcp_acc=100)
 

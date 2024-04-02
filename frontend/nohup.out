@@ -64,3 +64,43 @@ Traceback (most recent call last):
   File "/usr/lib/python3.10/socketserver.py", line 466, in server_bind
     self.socket.bind(self.server_address)
 OSError: [Errno 98] Address already in use
+127.0.0.1 - - [24/Feb/2024 13:24:51] "GET / HTTP/1.1" 200 -
+----------------------------------------
+Exception occurred during processing of request from ('127.0.0.1', 54266)
+Traceback (most recent call last):
+  File "/usr/lib/python3.10/socketserver.py", line 316, in _handle_request_noblock
+    self.process_request(request, client_address)
+  File "/usr/lib/python3.10/socketserver.py", line 347, in process_request
+    self.finish_request(request, client_address)
+  File "/usr/lib/python3.10/socketserver.py", line 360, in finish_request
+    self.RequestHandlerClass(request, client_address, self)
+  File "/usr/lib/python3.10/http/server.py", line 668, in __init__
+    super().__init__(*args, **kwargs)
+  File "/usr/lib/python3.10/socketserver.py", line 747, in __init__
+    self.handle()
+  File "/usr/lib/python3.10/http/server.py", line 433, in handle
+    self.handle_one_request()
+  File "/usr/lib/python3.10/http/server.py", line 421, in handle_one_request
+    method()
+  File "/home/fari/Documents/demo-fari-robotic-arm/frontend/server.py", line 9, in do_GET
+    return http.server.SimpleHTTPRequestHandler.do_GET(self)
+  File "/usr/lib/python3.10/http/server.py", line 675, in do_GET
+    self.copyfile(f, self.wfile)
+  File "/usr/lib/python3.10/http/server.py", line 875, in copyfile
+    shutil.copyfileobj(source, outputfile)
+  File "/usr/lib/python3.10/shutil.py", line 198, in copyfileobj
+    fdst_write(buf)
+  File "/usr/lib/python3.10/socketserver.py", line 826, in write
+    self._sock.sendall(b)
+BrokenPipeError: [Errno 32] Broken pipe
+----------------------------------------
+127.0.0.1 - - [24/Feb/2024 13:34:31] "GET / HTTP/1.1" 304 -
+127.0.0.1 - - [24/Feb/2024 13:34:31] "GET /style.css HTTP/1.1" 200 -
+127.0.0.1 - - [24/Feb/2024 13:34:31] "GET /app.js HTTP/1.1" 304 -
+127.0.0.1 - - [06/Mar/2024 08:32:49] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [08/Mar/2024 14:29:44] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [08/Mar/2024 14:29:44] "GET /style.css HTTP/1.1" 200 -
+127.0.0.1 - - [08/Mar/2024 14:29:44] "GET /app.js HTTP/1.1" 200 -
+127.0.0.1 - - [21/Mar/2024 09:21:57] "GET / HTTP/1.1" 304 -
+127.0.0.1 - - [21/Mar/2024 09:21:57] "GET /style.css HTTP/1.1" 304 -
+127.0.0.1 - - [21/Mar/2024 09:21:57] "GET /app.js HTTP/1.1" 304 -
