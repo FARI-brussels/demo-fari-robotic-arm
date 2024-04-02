@@ -132,7 +132,7 @@ class RobotMain(object):
         
     def move_to(self, x, y, z,  roll, pitch, yaw, dt=0.05, gain=1, treshold=0.01, modes=["real"]):
         roll_rad, pitch_rad, yaw_rad = np.radians([roll, pitch, yaw])
-        R = sm.SO3.RPY([roll_rad, pitch_rad, yaw_rad], order='xyz')
+        R = sm.SE3.RPY([roll_rad, pitch_rad, yaw_rad], order='xyz')
         T = sm.SE3(x, y, z)
         dest = T*R
         if "simulation" in modes:
