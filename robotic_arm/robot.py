@@ -71,6 +71,12 @@ class RobotMain(object):
             self._arm.register_count_changed_callback(self._count_changed_callback)
         self._arm.reset(wait=True)
 
+    def _reset(self):
+        self._arm.reset(wait=True)
+        LITE6.q = LITE6.qz
+        env.step(0.1)
+
+
     # Register error/warn changed callback
     def _error_warn_changed_callback(self, data):
         if data and data['error_code'] != 0:
@@ -135,6 +141,7 @@ class RobotMain(object):
         R = sm.SE3.RPY([roll_rad, pitch_rad, yaw_rad], order='xyz')
         T = sm.SE3(x, y, z)
         dest = T*R
+        print(dest)
         if "simulation" in modes:
             axes = sg.Axes(length=0.1, pose=dest)
             env.add(axes)
@@ -152,6 +159,7 @@ class RobotMain(object):
                 self._arm.vc_set_joint_velocity(qd, is_radian=True)
             if "simulation" in modes:
                 env.step(dt)
+        print(arrived)
         return arrived
 
     def draw_x(self, x, y, z, length, rest_position=(0,0,20), lift_height=10.0, tcp_speed=30, tcp_acc=1000):
@@ -172,7 +180,7 @@ class RobotMain(object):
             z_lifting = z + lift_height  # Z coordinate while lifting
 
             # Draw the first line
-            self.move_to(x1, y1, z_lifting, 200.0, 0.0, 0.0, )
+            self.move_to(x1, y1, z_lifting, 200.0, 0.0, 0.0, modes=["simulation"] )
             self._arm.set_position(x1, y1, z, 200.0, 0.0, 0.0, speed=self._tcp_speed, mvacc=self._tcp_acc, radius=20.0, wait=True)
             self._arm.set_position(x2, y2, z, 200.0, 0.0, 0.0, speed=self._tcp_speed, mvacc=self._tcp_acc, radius=20.0, wait=True)
 

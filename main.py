@@ -7,7 +7,7 @@ from calibration.calibrate_camera import load_coefficients, preprocess_image
 from tictactoe_engine import infer_tic_tac_toe_state, find_best_move, get_cell_center_and_shorter_edge
 from xarm import version
 from xarm.wrapper import XArmAPI
-from robotic_arm.draw import RobotMain
+from robotic_arm.robot import RobotMain
 from robotic_arm.calculate_transformation_matrix import calculate_transformation_matrix, apply_inverse_transformation
 from threading import Thread
 import base64
