@@ -18,21 +18,38 @@ def jacobian_i_k_optimisation(q, v, v_max=1.2):
     J = LITE6.jacobe(q)
     prog = MathematicalProgram()
     v_opt = prog.NewContinuousVariables(6, "v_opt")
-
     # Define the error term for the cost function
     error = J @ v_opt - v
     prog.AddCost(error.dot(error))
-
     # Add bounding box constraint for joint velocities
     lower_bounds = [-v_max] * 6  # Lower bounds for each joint velocity
     upper_bounds = [v_max] * 6   # Upper bounds for each joint velocity
     prog.AddBoundingBoxConstraint(lower_bounds, upper_bounds, v_opt)
-
     # Solve the optimization problem
     result = Solve(prog)
-
     return result.is_success(), result.GetSolution(v_opt)
 
+def tcp_offset_z(x, y, z, roll, pitch, yaw, tcp_offset):
+    # Define the orientation of the end effector using RPY angles
+    T_end_effector = sm.SE3.RPY([roll, pitch, yaw], unit='deg')
+    
+    # Define the translation from the end effector to the pen tip along the end effector's Z-axis
+    T_pen_tip = sm.SE3(0, 0, -tcp_offset)
+    
+    # Combine the transformations to find the transformation from world to pen tip
+    T_world_to_pen = T_end_effector * T_pen_tip
+    
+    # Define the pen tip's position in world coordinates
+    pen_tip_position = np.array([x, y, z, 1])  # Homogeneous coordinates
+    
+    # Apply the inverse transformation to find the end effector's position in world coordinates
+    T_world_to_end_effector = T_world_to_pen.inv()
+    end_effector_position_homogeneous = T_world_to_end_effector * pen_tip_position
+    
+    # Extract the x, y, z position from the homogeneous coordinates
+    end_effector_position = end_effector_position_homogeneous[:3]
+    
+    return end_effector_position
 
 MODES = ["simulation"]
 LITE6 = rtb.models.URDF.Lite6()
@@ -136,8 +153,11 @@ class RobotMain(object):
         else:
             return False
         
-    def move_to(self, x, y, z,  roll, pitch, yaw, dt=0.05, gain=1, treshold=0.01, modes=["real"]):
+    def move_to(self, x, y, z,  roll, pitch, yaw, dt=0.05, gain=1, treshold=0.01, modes=["real"], tcp_offset=None):
         roll_rad, pitch_rad, yaw_rad = np.radians([roll, pitch, yaw])
+        if tcp_offset:
+            x, y, z = tcp_offset_z(x, y, z, roll, pitch, yaw, tcp_offset)
+        print(x, y, z)
         R = sm.SE3.RPY([roll_rad, pitch_rad, yaw_rad], order='xyz')
         T = sm.SE3(x, y, z)
         dest = T*R
@@ -159,7 +179,7 @@ class RobotMain(object):
                 self._arm.vc_set_joint_velocity(qd, is_radian=True)
             if "simulation" in modes:
                 env.step(dt)
-        print(arrived)
+        self._arm.vc_set_joint_velocity([0, 0, 0, 0, 0, 0], is_radian=True)
         return arrived
 
     def draw_x(self, x, y, z, length, rest_position=(0,0,20), lift_height=10.0, tcp_speed=30, tcp_acc=1000):
