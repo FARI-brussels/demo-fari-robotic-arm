@@ -10,12 +10,9 @@ import time
 import math
 import swift
 
-def degrees_to_radians(angle_list):
-    return [math.radians(angle) for angle in angle_list]
-
-def jacobian_i_k_optimisation(q, v, v_max=1.2):
+def jacobian_i_k_optimisation(robot, v, v_max=1.2):
     # jacobian inverse kinematics with optimisation
-    J = LITE6.jacobe(q)
+    J = robot.jacobe(robot.q)
     prog = MathematicalProgram()
     v_opt = prog.NewContinuousVariables(6, "v_opt")
     # Define the error term for the cost function
@@ -29,36 +26,21 @@ def jacobian_i_k_optimisation(q, v, v_max=1.2):
     result = Solve(prog)
     return result.is_success(), result.GetSolution(v_opt)
 
-def tcp_offset_z(x, y, z, roll, pitch, yaw, tcp_offset):
-    # Define the orientation of the end effector using RPY angles
-    T_end_effector = sm.SE3.RPY([roll, pitch, yaw], unit='deg')
+def end_effector_base_position_from_tip(T_tip ,offset):
+    """
+    Calculate the end effector base position given the tip position and an arbitrary offset.
     
-    # Define the translation from the end effector to the pen tip along the end effector's Z-axis
-    T_pen_tip = sm.SE3(0, 0, -tcp_offset)
+    :param tip_position: A tuple of (x, y, z) coordinates for the end effector tip.
+    :param tip_orientation: A tuple of (roll, pitch, yaw) angles in degrees for the end effector tip orientation.
+    :param offset: A tuple of (x_e, y_e, z_e, roll_e, pitch_e, yaw_e) representing the offset of the base from the tip.
+    :return: The position of the end effector base as a tuple (x, y, z).
+    """
+    x_e, y_e, z_e, roll_e, pitch_e, yaw_e = offset
+    T_offset = sm.SE3.RPY([roll_e, pitch_e, yaw_e], unit='deg') * sm.SE3(x_e, y_e, z_e)
     
-    # Combine the transformations to find the transformation from world to pen tip
-    T_world_to_pen = T_end_effector * T_pen_tip
-    
-    # Define the pen tip's position in world coordinates
-    pen_tip_position = np.array([x, y, z, 1])  # Homogeneous coordinates
-    
-    # Apply the inverse transformation to find the end effector's position in world coordinates
-    T_world_to_end_effector = T_world_to_pen.inv()
-    end_effector_position_homogeneous = T_world_to_end_effector * pen_tip_position
-    
-    # Extract the x, y, z position from the homogeneous coordinates
-    end_effector_position = end_effector_position_homogeneous[:3]
-    
-    return end_effector_position
-
-MODES = ["simulation"]
-LITE6 = rtb.models.URDF.Lite6()
-LITE6.q = LITE6.qz
-
-if "simulation" in MODES:
-    env = swift.Swift()
-    env.launch(realtime=True)
-    env.add(LITE6, robot_alpha=True, collision_alpha=False)
+    # Calculate the transformation matrix for the base
+    T_base = T_tip * T_offset.inv()
+    return T_base
 
 
 class RobotMain(object):
@@ -152,35 +134,6 @@ class RobotMain(object):
             return self._arm.state < 4
         else:
             return False
-        
-    def move_to(self, x, y, z,  roll, pitch, yaw, dt=0.05, gain=1, treshold=0.01, modes=["real"], tcp_offset=None):
-        roll_rad, pitch_rad, yaw_rad = np.radians([roll, pitch, yaw])
-        if tcp_offset:
-            x, y, z = tcp_offset_z(x, y, z, roll, pitch, yaw, tcp_offset)
-        print(x, y, z)
-        R = sm.SE3.RPY([roll_rad, pitch_rad, yaw_rad], order='xyz')
-        T = sm.SE3(x, y, z)
-        dest = T*R
-        print(dest)
-        if "simulation" in modes:
-            axes = sg.Axes(length=0.1, pose=dest)
-            env.add(axes)
-        if "real" in modes:
-            # set joint velocity control mode
-            self._arm.set_mode(4)
-            self._arm.set_state(0)
-            time.sleep(0.1)
-        arrived = False
-        while not arrived:
-            v, arrived = rtb.p_servo(LITE6.fkine(LITE6.q), dest, gain=gain, threshold=treshold)
-            qd = jacobian_i_k_optimisation(LITE6.q, v, v_max=1)[1]
-            LITE6.qd = qd
-            if "real" in modes:
-                self._arm.vc_set_joint_velocity(qd, is_radian=True)
-            if "simulation" in modes:
-                env.step(dt)
-        self._arm.vc_set_joint_velocity([0, 0, 0, 0, 0, 0], is_radian=True)
-        return arrived
 
     def draw_x(self, x, y, z, length, rest_position=(0,0,20), lift_height=10.0, tcp_speed=30, tcp_acc=1000):
         try:
@@ -260,3 +213,46 @@ class RobotMain(object):
             self._arm.release_state_changed_callback(self._state_changed_callback)
             if hasattr(self._arm, 'release_count_changed_callback'):
                 self._arm.release_count_changed_callback(self._count_changed_callback)
+
+
+
+class Lite6:
+    def __init__(self, simulation, robot_ip = None, tcp_offset = None) -> None:
+        self.virtual_robot = rtb.models.URDF.Lite6()
+        self.simulation = simulation
+        if self.simulation:
+            self.simulation.add(self.virtual_robot, robot_alpha=True, collision_alpha=False)
+        self.tcp_offset = tcp_offset
+        self.real_robot = None
+        if robot_ip:
+            from xarm.wrapper import XArmAPI
+            self.real_robot = RobotMain(XArmAPI(robot_ip, baud_checkset=False))
+
+    def move_to(self, dest, dt=0.05, gain=1, treshold=0.01):
+        if self.tcp_offset:
+            dest = end_effector_base_position_from_tip(dest, self.tcp_offset)
+        if self.simulation:
+            axes = sg.Axes(length=0.1, pose=dest)
+            self.simulation.add(axes)
+        if self.real_robot:
+            self.real_robot.set_mode(4)
+            self.real_robot.set_state(0)
+        arrived = False
+        while not arrived:
+            v, arrived = rtb.p_servo(self.virtual_robot.fkine(self.virtual_robot.q), dest, gain=gain, threshold=treshold)
+            qd = jacobian_i_k_optimisation(self.virtual_robot, v, v_max=1)[1]
+            self.virtual_robot.qd = qd
+            if self.real_robot:
+                self._arm.vc_set_joint_velocity(qd, is_radian=True)
+            if self.simulation:
+                self.simulation.step(dt)
+        if self.real_robot:
+            self._arm.vc_set_joint_velocity([0, 0, 0, 0, 0, 0], is_radian=True)
+        return arrived
+    
+    def get_pose(self):
+        return self.virtual_robot.fkine(self.virtual_robot.q)
+    
+    def reset(self):
+        self.virtual_robot.q = self.virtual_robot.qz
+        self.simulation.step(0.1)
