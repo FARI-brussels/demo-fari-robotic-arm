@@ -72,8 +72,6 @@ class RobotMain(object):
 
     def _reset(self):
         self._arm.reset(wait=True)
-        LITE6.q = LITE6.qz
-        env.step(0.1)
 
 
     # Register error/warn changed callback
@@ -227,6 +225,7 @@ class Lite6:
         if robot_ip:
             from xarm.wrapper import XArmAPI
             self.real_robot = RobotMain(XArmAPI(robot_ip, baud_checkset=False))
+            print(self.real_robot)
 
     def move_to(self, dest, dt=0.05, gain=1, treshold=0.01):
         if self.tcp_offset:
@@ -235,19 +234,19 @@ class Lite6:
             axes = sg.Axes(length=0.1, pose=dest)
             self.simulation.add(axes)
         if self.real_robot:
-            self.real_robot.set_mode(4)
-            self.real_robot.set_state(0)
+            self.real_robot._arm.set_mode(4)
+            self.real_robot._arm.set_state(0)
         arrived = False
         while not arrived:
             v, arrived = rtb.p_servo(self.virtual_robot.fkine(self.virtual_robot.q), dest, gain=gain, threshold=treshold)
             qd = jacobian_i_k_optimisation(self.virtual_robot, v, v_max=1)[1]
             self.virtual_robot.qd = qd
             if self.real_robot:
-                self._arm.vc_set_joint_velocity(qd, is_radian=True)
+                self.real_robot._arm.vc_set_joint_velocity(qd, is_radian=True)
             if self.simulation:
                 self.simulation.step(dt)
         if self.real_robot:
-            self._arm.vc_set_joint_velocity([0, 0, 0, 0, 0, 0], is_radian=True)
+            self.real_robot._arm.vc_set_joint_velocity([0, 0, 0, 0, 0, 0], is_radian=True)
         return arrived
     
     def get_pose(self):
