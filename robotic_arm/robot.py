@@ -55,6 +55,7 @@ class RobotMain(object):
         self._vars = {}
         self._funcs = {}
         self._robot_init()
+        self.q = self._arm.angles
 
     # Robot init
     def _robot_init(self):
@@ -213,7 +214,6 @@ class RobotMain(object):
                 self._arm.release_count_changed_callback(self._count_changed_callback)
 
 
-
 class Lite6:
     def __init__(self, simulation, robot_ip = None, tcp_offset = None) -> None:
         self.virtual_robot = rtb.models.URDF.Lite6()
@@ -227,8 +227,8 @@ class Lite6:
             self.real_robot = RobotMain(XArmAPI(robot_ip, baud_checkset=False))
             print(self.real_robot)
 
-    def move_to(self, dest, dt=0.05, gain=1, treshold=0.01):
-        if self.tcp_offset:
+    def move_to(self, dest, dt=0.05, gain=1, treshold=0.01, offset=True):
+        if self.tcp_offset and offset:
             dest = end_effector_base_position_from_tip(dest, self.tcp_offset)
         if self.simulation:
             axes = sg.Axes(length=0.1, pose=dest)
@@ -247,11 +247,66 @@ class Lite6:
                 self.simulation.step(dt)
         if self.real_robot:
             self.real_robot._arm.vc_set_joint_velocity([0, 0, 0, 0, 0, 0], is_radian=True)
-        return arrived
+        return arrived, self.virtual_robot.q
+
+    def move_line(self, q0, T1, duration=1, n_samples=1000):
+        resolution = duration/n_samples
+        t = np.arange(0, duration, resolution)
+        T0 = self.virtual_robot.fkine(q0)
+        if self.tcp_offset:
+            T1 = end_effector_base_position_from_tip(T1, lite6.tcp_offset)
+        if self.real_robot:
+            self.real_robot._arm.set_mode(1)
+            self.real_robot._arm.set_state(0)
+        Ts = rtb.ctraj(T0, T1, t)
+        Js = self.virtual_robot.ikine_LM(Ts, mask=[1, 1, 1, 0.1, 0.1, 0.1], q0=q0)
+        for q in Js.q:
+            if self.simulation:
+                self.virtual_robot.q = q
+                self.simulation.step(resolution)
+            if self.real_robot:
+                self.real_robot._arm.set_servo_angle_j(q, is_radian=True)
+                time.sleep(resolution)
+        return True
+
+    def execute_joint_trajectory(self, q_traj, duration):
+        n_samples = len(q_traj)
+        resolution = duration/n_samples
+        if self.real_robot:
+            self.real_robot._arm.set_mode(1)
+            self.real_robot._arm.set_state(0)
+        for q in q_traj:
+            if self.simulation:
+                self.virtual_robot.q = q
+                self.simulation.step(resolution)
+            if self.real_robot:
+                self.real_robot._arm.set_servo_angle_j(q, is_radian=True)
+                time.sleep(resolution)
+
+    def move_circle(self, q0, r, duration=1, n_samples=1000):
+        resolution = duration/n_samples
+        t = np.arange(0, duration, resolution)
+        T0 = self.virtual_robot.fkine(q0)
+        traj = generate_circular_trajectory(T0, r)
+        if self.real_robot:
+            self.real_robot._arm.set_mode(1)
+            self.real_robot._arm.set_state(0)
+        for to in traj:
+            q = lite6.virtual_robot.ikine_LM(to, mask=[1, 1, 1, 0.1, 0.1, 0.1], q0=q0).q
+            if self.simulation:
+                self.virtual_robot.q = q
+                self.simulation.step(resolution)
+            if self.real_robot:
+                self.real_robot._arm.set_servo_angle_j(q, is_radian=True)
+                time.sleep(resolution)
+
     
     def get_pose(self):
         return self.virtual_robot.fkine(self.virtual_robot.q)
     
     def reset(self):
-        self.virtual_robot.q = self.virtual_robot.qz
-        self.simulation.step(0.1)
+        if self.simulation:
+            self.virtual_robot.q = self.virtual_robot.qz
+            self.simulation.step(0.1)
+        if self.real_robot:
+            self.real_robot._reset()
