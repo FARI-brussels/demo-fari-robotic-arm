@@ -1,3 +1,4 @@
+# %%
 import time
 import traceback
 import roboticstoolbox as rtb
@@ -41,6 +42,40 @@ def end_effector_base_position_from_tip(T_tip ,offset):
     # Calculate the transformation matrix for the base
     T_base = T_tip * T_offset.inv()
     return T_base
+
+def generate_circular_trajectory(T0, r, n_points=100):
+    """
+    Generates a circular trajectory in 3D space.
+    
+    :param T0: Initial pose as an SE3 object.
+    :param r: Radius of the circle.
+    :param n_points: Number of points to generate along the circle.
+    :return: A list of SE3 objects representing poses along the circular trajectory.
+    """
+    
+    # Angle increments for generating points on the circle
+    t = np.linspace(0, 1,  n_points, endpoint=False)
+    theta = np.linspace(0, 2 * np.pi, n_points, endpoint=False)
+    
+    # Circle parameterization in its local XY plane
+    x = r * np.cos(theta)
+    y = r * np.sin(theta)
+    z = np.zeros_like(x)  # Assuming the circle lies in the XY plane
+    
+    # Generate poses along the circular trajectory
+    trajectory = []
+    for i, (xi, yi, zi) in enumerate(zip(x, y, z)):
+        # Construct the translation vector in the local frame of T0
+        local_translation = sm.SE3(xi, yi, zi)
+        
+        # Transform to the global frame using T0
+        global_translation = T0 * local_translation
+
+        # Append the global pose to the trajectory
+        trajectory.append(global_translation)
+    #return rtb.tools.trajectory.Trajectory("circle", trajectory, t)
+    return trajectory
+
 
 
 class RobotMain(object):
@@ -134,86 +169,9 @@ class RobotMain(object):
         else:
             return False
 
-    def draw_x(self, x, y, z, length, rest_position=(0,0,20), lift_height=10.0, tcp_speed=30, tcp_acc=1000):
-        try:
-            self._arm.close_lite6_gripper()
-            self._tcp_speed = tcp_speed
-            self._tcp_acc = tcp_acc
+    
 
-            # Calculate end points of the first line
-            x1, y1 = x - length / 2, y - length / 2
-            x2, y2 = x + length / 2, y + length / 2
-
-            # Calculate end points of the second line
-            x3, y3 = x - length / 2, y + length / 2
-            x4, y4 = x + length / 2, y - length / 2
-
-            # Z coordinate while drawing
-            z_lifting = z + lift_height  # Z coordinate while lifting
-
-            # Draw the first line
-            self.move_to(x1, y1, z_lifting, 200.0, 0.0, 0.0, modes=["simulation"] )
-            self._arm.set_position(x1, y1, z, 200.0, 0.0, 0.0, speed=self._tcp_speed, mvacc=self._tcp_acc, radius=20.0, wait=True)
-            self._arm.set_position(x2, y2, z, 200.0, 0.0, 0.0, speed=self._tcp_speed, mvacc=self._tcp_acc, radius=20.0, wait=True)
-
-            # Lift, move to the start of the second line, and lower
-            self._arm.set_position(x2, y2, z_lifting, 200.0, 0.0, 0.0, speed=self._tcp_speed, mvacc=self._tcp_acc, radius=20.0, wait=True)
-            self._arm.set_position(x3, y3, z_lifting, 200.0, 0.0, 0.0, speed=self._tcp_speed, mvacc=self._tcp_acc, radius=20.0, wait=True)
-            self._arm.set_position(x3, y3, z, 200.0, 0.0, 0.0, speed=self._tcp_speed, mvacc=self._tcp_acc, radius=20.0, wait=True)
-
-            # Draw the second line
-            self._arm.set_position(x4, y4, z, 200.0, 0.0, 0.0, speed=self._tcp_speed, mvacc=self._tcp_acc, radius=20.0, wait=True)
-            self._arm.set_position(x4, y4, z_lifting, 200.0, 0.0, 0.0, speed=self._tcp_speed, mvacc=self._tcp_acc, radius=20.0, wait=True)
-        
-        except Exception as e:
-            self.pprint('MainException: {}'.format(e))
-        finally:
-            self.alive = False
-            self._arm.release_error_warn_changed_callback(self._error_warn_changed_callback)
-            self._arm.release_state_changed_callback(self._state_changed_callback)
-            if hasattr(self._arm, 'release_count_changed_callback'):
-                self._arm.release_count_changed_callback(self._count_changed_callback)
-
-    def grab_pen(self, pen_position, rest_position=(116,192,53), lift_height=50.0, tcp_speed=30, tcp_acc=1000):
-        try:
-            self._tcp_speed = tcp_speed
-            self._tcp_acc = tcp_acc
-            self._arm.open_lite6_gripper()
-            self._arm.set_position(pen_position[0], pen_position[1], pen_position[2]+lift_height, -180, 0.0, 90, speed=self._tcp_speed, mvacc=self._tcp_acc, radius=50.0, wait=True)
-            self._arm.set_position(pen_position[0], pen_position[1], pen_position[2], -180, 0.0, 90, speed=self._tcp_speed, mvacc=self._tcp_acc, radius=50.0, wait=True)
-            self._arm.close_lite6_gripper()
-            time.sleep(1)
-            self._arm.set_position(pen_position[0], pen_position[1], pen_position[2]+lift_height, -180, 0.0, 50, speed=self._tcp_speed, mvacc=self._tcp_acc, radius=50.0, wait=True)
-            self._arm.set_position(*rest_position, 200, 0.0, 0.0, speed=self._tcp_speed, mvacc=self._tcp_acc, radius=50.0, wait=False)
-        except Exception as e:
-            self.pprint('MainException: {}'.format(e))
-        finally:
-            self.alive = False
-            self._arm.release_error_warn_changed_callback(self._error_warn_changed_callback)
-            self._arm.release_state_changed_callback(self._state_changed_callback)
-            if hasattr(self._arm, 'release_count_changed_callback'):
-                self._arm.release_count_changed_callback(self._count_changed_callback)
-
-    def store_pen(self, pen_position, rest_position=(116,192,53), lift_height=50.0, tcp_speed=30, tcp_acc=1000):
-        try:
-            self._tcp_speed = tcp_speed
-            self._tcp_acc = tcp_acc
-            self._arm.set_position(pen_position[0], pen_position[1], pen_position[2]+lift_height, -180, 0.0, 90, speed=self._tcp_speed, mvacc=self._tcp_acc, radius=20.0, wait=True)
-            self._arm.set_position(pen_position[0], pen_position[1], pen_position[2]+lift_height/4, -180, 0.0, 90, speed=self._tcp_speed, mvacc=self._tcp_acc, radius=20.0, wait=True)
-            self._arm.open_lite6_gripper()
-            self._arm.set_position(pen_position[0], pen_position[1], pen_position[2]+lift_height, -180, 0.0, 90, speed=self._tcp_speed, mvacc=self._tcp_acc, radius=20.0, wait=True)
-            self._arm.set_position(*rest_position,-180, 0.0, 90, speed=self._tcp_speed, mvacc=self._tcp_acc, radius=20.0, wait=False)
-            self._arm.stop_lite6_gripper()
-        except Exception as e:
-            self.pprint('MainException: {}'.format(e))
-        finally:
-            self.alive = False
-            self._arm.release_error_warn_changed_callback(self._error_warn_changed_callback)
-            self._arm.release_state_changed_callback(self._state_changed_callback)
-            if hasattr(self._arm, 'release_count_changed_callback'):
-                self._arm.release_count_changed_callback(self._count_changed_callback)
-
-
+    
 class Lite6:
     def __init__(self, simulation, robot_ip = None, tcp_offset = None) -> None:
         self.virtual_robot = rtb.models.URDF.Lite6()
@@ -227,7 +185,19 @@ class Lite6:
             self.real_robot = RobotMain(XArmAPI(robot_ip, baud_checkset=False))
             print(self.real_robot)
 
-    def move_to(self, dest, dt=0.05, gain=1, treshold=0.01, offset=True):
+    def open_gripper(self):
+        if self.real_robot:
+            self._arm.open_lite6_gripper()
+        if self.simulation:
+            pass
+
+    def close_gripper(self):
+        if self.real_robot:
+            self._arm.close_lite6_gripper()
+        if self.simulation:
+            pass
+
+    def move_to_cartesian_position(self, dest, dt=0.05, gain=1, treshold=0.01, offset=True):
         if self.tcp_offset and offset:
             dest = end_effector_base_position_from_tip(dest, self.tcp_offset)
         if self.simulation:
@@ -238,7 +208,12 @@ class Lite6:
             self.real_robot._arm.set_state(0)
         arrived = False
         while not arrived:
-            v, arrived = rtb.p_servo(self.virtual_robot.fkine(self.virtual_robot.q), dest, gain=gain, threshold=treshold)
+            if self.real_robot:
+                q = self.real_robot._arm.get_servo_angle(is_radian=True)[1][:6]
+                self.virtual_robot.q = q
+            else:
+                q = self.virtual_robot.q
+            v, arrived = rtb.p_servo(self.virtual_robot.fkine(q), dest, gain=gain, threshold=treshold)
             qd = jacobian_i_k_optimisation(self.virtual_robot, v, v_max=1)[1]
             self.virtual_robot.qd = qd
             if self.real_robot:
@@ -249,25 +224,10 @@ class Lite6:
             self.real_robot._arm.vc_set_joint_velocity([0, 0, 0, 0, 0, 0], is_radian=True)
         return arrived, self.virtual_robot.q
 
-    def move_line(self, q0, T1, duration=1, n_samples=1000):
-        resolution = duration/n_samples
-        t = np.arange(0, duration, resolution)
-        T0 = self.virtual_robot.fkine(q0)
-        if self.tcp_offset:
-            T1 = end_effector_base_position_from_tip(T1, lite6.tcp_offset)
-        if self.real_robot:
-            self.real_robot._arm.set_mode(1)
-            self.real_robot._arm.set_state(0)
-        Ts = rtb.ctraj(T0, T1, t)
-        Js = self.virtual_robot.ikine_LM(Ts, mask=[1, 1, 1, 0.1, 0.1, 0.1], q0=q0)
-        for q in Js.q:
-            if self.simulation:
-                self.virtual_robot.q = q
-                self.simulation.step(resolution)
-            if self.real_robot:
-                self.real_robot._arm.set_servo_angle_j(q, is_radian=True)
-                time.sleep(resolution)
-        return True
+
+    def move_to_joint_position(self, q_dest, q0):
+        pass
+
 
     def execute_joint_trajectory(self, q_traj, duration):
         n_samples = len(q_traj)
@@ -282,24 +242,6 @@ class Lite6:
             if self.real_robot:
                 self.real_robot._arm.set_servo_angle_j(q, is_radian=True)
                 time.sleep(resolution)
-
-    def move_circle(self, q0, r, duration=1, n_samples=1000):
-        resolution = duration/n_samples
-        t = np.arange(0, duration, resolution)
-        T0 = self.virtual_robot.fkine(q0)
-        traj = generate_circular_trajectory(T0, r)
-        if self.real_robot:
-            self.real_robot._arm.set_mode(1)
-            self.real_robot._arm.set_state(0)
-        for to in traj:
-            q = lite6.virtual_robot.ikine_LM(to, mask=[1, 1, 1, 0.1, 0.1, 0.1], q0=q0).q
-            if self.simulation:
-                self.virtual_robot.q = q
-                self.simulation.step(resolution)
-            if self.real_robot:
-                self.real_robot._arm.set_servo_angle_j(q, is_radian=True)
-                time.sleep(resolution)
-
     
     def get_pose(self):
         return self.virtual_robot.fkine(self.virtual_robot.q)
@@ -310,3 +252,77 @@ class Lite6:
             self.simulation.step(0.1)
         if self.real_robot:
             self.real_robot._reset()
+            
+    def ctraj(self, T0, T1, n_samples):
+        if self.tcp_offset:
+            T0 = end_effector_base_position_from_tip(T0, self.tcp_offset)
+            T1 = end_effector_base_position_from_tip(T1, self.tcp_offset)
+        return rtb.ctraj(T0, T1, n_samples)
+    
+    def circ_ctraj(self, Tcenter, radius, n_samples):
+        if self.tcp_offset:
+            Tcenter= end_effector_base_position_from_tip(Tcenter, self.tcp_offset)
+        return generate_circular_trajectory(Tcenter, radius, n_samples)
+        
+    def draw_x(self, center: sm.SE3, length, Trest=None, lift_height=0.01):
+        half_length = length / 2
+        # End points of the first line
+        T1 = center * sm.SE3(-half_length, -half_length, 0)
+        T2 = center * sm.SE3(half_length, half_length, 0)   # Translated from center by half_length in X and Y
+        T3_high = center * sm.SE3(-half_length, half_length, lift_height) 
+        # End points of the second line
+        T3 = center * sm.SE3(-half_length, half_length, 0)  # Translated from center by -half_length in X and half_length in Y
+        T4 = center * sm.SE3(half_length, -half_length, 0)  # Translated from center by half_length in X and -half_length in 
+
+        _, q0 = self.move_to_cartesian_position(T1)
+
+        ctraj1 = self.ctraj(T1, T2, 100)
+        qtraj1 = self.virtual_robot.ikine_LM(ctraj1, mask=[1, 1, 1, 0.1, 0.1, 0.1], q0 = q0)
+        self.execute_joint_trajectory(qtraj1.q, duration=1)
+        self.move_to_cartesian_position(T3_high)
+        _, q0 = self.move_to_cartesian_position(T3)
+        ctraj2 = self.ctraj(T3, T4, 100)
+        qtraj2 = self.virtual_robot.ikine_LM(ctraj2, mask=[1, 1, 1, 0.1
+                                                           , 0.1, 0.1], q0=q0)
+        self.execute_joint_trajectory(qtraj2.q, duration=1)
+        self.move_to_cartesian_position(Trest) 
+
+    def draw_o(self, center: sm.SE3, radius, Trest=None, lift_height=0.01):
+        ctraj = self.circ_ctraj(center, radius, 100)
+        _, q0 = self.move_to_cartesian_position(ctraj[0], offset=False)
+        qtraj = []
+        for T in ctraj:
+            q0 = self.virtual_robot.ikine_LM(T, mask=[1, 1, 1, 0.1, 0.1, 0.1], q0=q0).q
+            qtraj.append(q0)
+        self.execute_joint_trajectory(qtraj, duration=1)
+        self.move_to_cartesian_position(Trest)     
+
+    def grab_pen(self, Tpen, Trest=None, lift_height=0.01):
+        Tpen_high = Tpen * sm.SE3(0, 0, lift_height) 
+        self.move_to_cartesian_position(Tpen_high) 
+        self.move_to_cartesian_position(Tpen) 
+        self.close_gripper()
+        self.move_to_cartesian_position(Trest)
+        
+    def store_pen(self, Tpen, Trest=None, lift_height=0.01):
+        Tpen_high = Tpen * sm.SE3(0, 0, lift_height) 
+        self.move_to_cartesian_position(Tpen_high) 
+        self.move_to_cartesian_position(Tpen) 
+        self.open_gripper()
+        self.move_to_cartesian_position(Trest)
+    
+        
+
+tcp_offset = [0, 0, 0.2, 0, 0, 0]
+sim = swift.Swift()
+sim.launch(realtime=True)
+#lite6 = Lite6(simulation=sim, robot_ip="192.168.1.159",  tcp_offset=tcp_offset)
+lite6 = Lite6(simulation=sim,  tcp_offset=tcp_offset)
+lite6.reset()
+T0 = sm.SE3(0.1, 0.1, 0)*sm.SE3.RPY([-180, -180, 0], order='xyz', unit='deg')
+T1 = sm.SE3(0.1, 0, 0)*sm.SE3.RPY([-180, -180, 0], order='xyz', unit='deg')
+lite6.grab_pen(T0, Trest=lite6.virtual_robot.fkine(lite6.virtual_robot.qz))
+lite6.draw_o(T0, 0.005, Trest=lite6.virtual_robot.fkine(lite6.virtual_robot.qz))
+lite6.draw_x(T1, 0.005, Trest=lite6.virtual_robot.fkine(lite6.virtual_robot.qz))
+lite6.store_pen(T0, Trest=lite6.virtual_robot.fkine(lite6.virtual_robot.qz))
+# %%
