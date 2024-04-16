@@ -187,17 +187,21 @@ class Lite6:
 
     def open_gripper(self):
         if self.real_robot:
-            self._arm.open_lite6_gripper()
+            self.real_robot._arm.open_lite6_gripper()
+            time.sleep(0.5)
+            self.real_robot._arm.stop_lite6_gripper()
         if self.simulation:
             pass
 
-    def close_gripper(self):
+    def close_gripper(self, wait=None):
         if self.real_robot:
-            self._arm.close_lite6_gripper()
+            self.real_robot._arm.close_lite6_gripper()
+            if wait:
+                time.sleep(wait)
         if self.simulation:
             pass
 
-    def move_to_cartesian_position(self, dest, dt=0.05, gain=1, treshold=0.01, offset=True):
+    def move_to_cartesian_position(self, dest, dt=0.05, gain=2, treshold=0.001, offset=True):
         if self.tcp_offset and offset:
             dest = end_effector_base_position_from_tip(dest, self.tcp_offset)
         if self.simulation:
@@ -301,7 +305,7 @@ class Lite6:
         Tpen_high = Tpen * sm.SE3(0, 0, lift_height) 
         self.move_to_cartesian_position(Tpen_high) 
         self.move_to_cartesian_position(Tpen) 
-        self.close_gripper()
+        self.close_gripper(wait = 1)
         self.move_to_cartesian_position(Trest)
         
     def store_pen(self, Tpen, Trest=None, lift_height=0.01):
@@ -309,20 +313,26 @@ class Lite6:
         self.move_to_cartesian_position(Tpen_high) 
         self.move_to_cartesian_position(Tpen) 
         self.open_gripper()
+        time.sleep(0.5)
         self.move_to_cartesian_position(Trest)
     
         
-
+"""
 tcp_offset = [0, 0, 0.2, 0, 0, 0]
 sim = swift.Swift()
 sim.launch(realtime=True)
-#lite6 = Lite6(simulation=sim, robot_ip="192.168.1.159",  tcp_offset=tcp_offset)
-lite6 = Lite6(simulation=sim,  tcp_offset=tcp_offset)
+lite6 = Lite6(simulation=sim, robot_ip="192.168.1.159",  tcp_offset=tcp_offset)
+# %%
+#lite6 = Lite6(simulation=sim,  tcp_offset=tcp_offset)
 lite6.reset()
+
 T0 = sm.SE3(0.1, 0.1, 0)*sm.SE3.RPY([-180, -180, 0], order='xyz', unit='deg')
 T1 = sm.SE3(0.1, 0, 0)*sm.SE3.RPY([-180, -180, 0], order='xyz', unit='deg')
 lite6.grab_pen(T0, Trest=lite6.virtual_robot.fkine(lite6.virtual_robot.qz))
-lite6.draw_o(T0, 0.005, Trest=lite6.virtual_robot.fkine(lite6.virtual_robot.qz))
+#lite6.draw_o(T0, 0.005, Trest=lite6.virtual_robot.fkine(lite6.virtual_robot.qz))
 lite6.draw_x(T1, 0.005, Trest=lite6.virtual_robot.fkine(lite6.virtual_robot.qz))
 lite6.store_pen(T0, Trest=lite6.virtual_robot.fkine(lite6.virtual_robot.qz))
+"""
+
+
 # %%
