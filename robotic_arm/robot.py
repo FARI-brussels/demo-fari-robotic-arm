@@ -101,23 +101,24 @@ class OXOPlayer:
             self.move_to(Trest)
 
 
-    def execute_joint_trajectory(self, q_traj, duration):
-        n_samples = len(q_traj)
-        resolution = duration/n_samples
-        for q in q_traj:
-            if self.simulation:
-                self.robot.q = q
-                self.simulation.step(resolution)
-
-
-    def move_to_linear(self, Tdest):
+    def move_to_q(self, q_dest, duration, n_samples=100):
         q0 = self.robot.q
-        T0 = self.robot.fkine(q0)
-        ctraj1 = rtb.ctraj(T0, Tdest, 10)
-        print(T0, Tdest)
-        qtraj1 = self.robot.ikine_LM(ctraj1, mask=[1, 1, 1, 0.1, 0.1, 0.1], q0 = q0)
-        self.execute_joint_trajectory(qtraj1.q, duration=1)
+        j_traj = rtb.jtraj(q0, q_dest, n_samples)
+        dt = duration/n_samples
+        for qd in j_traj.qd:
+            self.robot.qd = qd
+            if self.api:
+                self.api.set_joint_velocity(qd, is_radian=True)
+                if not self.simulation:
+                    time.sleep(dt)
+                else:
+                    self.simulation.step(0)
+            else: 
+                self.simulation.step(dt)
 
+            
+
+            
     
     
 
@@ -133,16 +134,21 @@ sim = swift.Swift()
 scene = [table]
 lite6 = rtb.models.URDF.Lite6()
 lite6.q = lite6.qr
-lite6.base *=  sm.SE3.Rz(180, 'deg')* sm.SE3.Tz(0.7)
+lite6.base *=  sm.SE3.Rz(90, 'deg')* sm.SE3.Tz(0.7)
 oxo_player = OXOPlayer(lite6, api=None, simulation=sim, scene=scene)
 #screen_center = table.T*sm.SE3.Tx(-0.25)*sm.SE3.Tz(0.05)*sm.SE3.RPY([-180, -180, 0], order='xyz', unit='deg')
 
 screen_center = table.T*sm.SE3.Tx(-0.25)*sm.SE3.Tz(0.2)*sm.SE3.RPY([-180, -180, 0], order='xyz', unit='deg')
 
+# %% 
+time.sleep(2)
+print(oxo_player.robot.qr)
+q = [1.6057,-0.575,0.8727,0,1.0996,-0.0524]
+oxo_player.move_to_q(q, 1)
 
 # %%
 time.sleep(5)
-Trest = oxo_player.robot.fkine(oxo_player.robot.qr)
+Trest = oxo_player.robot.fkine(q)
 oxo_player.draw_grid(screen_center, 0.1, Trest=Trest)
 time.sleep(1)
 oxo_player.draw_x(screen_center, 0.02, Trest=Trest)
