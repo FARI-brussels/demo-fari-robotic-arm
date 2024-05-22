@@ -73,8 +73,10 @@ class OXOPlayer:
             self.simulation.add(self.robot)
             for ob in scene:
                 self.simulation.add(ob)
+        if self.api:
+            robot.q = self.api.get_joint_positions(is_radian=True)
         
-    def move_to(self, dest, dt=0.05, gain=2, treshold=0.001): 
+    def move_to(self, dest, dt=0.05, gain=2, treshold=0.001, qd_max=0.2): 
         arrived = False
         while not arrived:
             if self.api:
@@ -83,10 +85,10 @@ class OXOPlayer:
             else:
                 q = self.robot.q
             v, arrived = rtb.p_servo(self.robot.fkine(q), dest, gain=gain, threshold=treshold)
-            qd = jacobian_i_k_optimisation(self.robot, v, qd_max=1)[1]
+            qd = jacobian_i_k_optimisation(self.robot, v, qd_max=qd_max)[1]
             self.robot.qd = qd
             if self.api:
-                self.api.set_joint_velocity(qd, is_radian=True)
+                self.api.set_joint_velocities(qd, is_radian=True)
                 if not self.simulation:
                     time.sleep(dt)
                 else:
@@ -94,7 +96,7 @@ class OXOPlayer:
             else: 
                 self.simulation.step(dt)
         if self.api:
-            self.api.set_joint_velocity([0, 0, 0, 0, 0, 0], is_radian=True)
+            self.api.set_joint_velocities([0, 0, 0, 0, 0, 0], is_radian=True)
         return arrived, self.robot.q
     
     def move_to_q(self, q_dest, dt=0.05, gain=2, treshold=0.001): 
@@ -108,7 +110,7 @@ class OXOPlayer:
             qd, arrived = joint_servo(q, q_dest, gain=gain, threshold=treshold)
             self.robot.qd = qd
             if self.api:
-                self.api.set_joint_velocity(qd, is_radian=True)
+                self.api.set_joint_velocities(qd, is_radian=True)
                 if not self.simulation:
                     time.sleep(dt)
                 else:
@@ -116,100 +118,107 @@ class OXOPlayer:
             else: 
                 self.simulation.step(dt)
         if self.api:
-            self.api.set_joint_velocity([0, 0, 0, 0, 0, 0], is_radian=True)
+            self.api.set_joint_velocities([0, 0, 0, 0, 0, 0], is_radian=True)
         return arrived, self.robot.q
             
     
-    def draw_grid(self, grid_center, grid_size, Trest=None, lift_height=0.01):
+    def draw_grid(self, grid_center, grid_size, q_rest=None, lift_height=0.01, qd_max=1):
         for i in [-1, 1]:
-            self.move_to(grid_center * sm.SE3(grid_size/6 * i, grid_size/2 * i, -lift_height))
-            self.move_to(grid_center * sm.SE3(grid_size/6 * i, grid_size/2 * i, 0))
-            self.move_to(grid_center * sm.SE3(grid_size/6 * i, grid_size/2 * -i, 0))
-            self.move_to(grid_center * sm.SE3(grid_size/6 * i, grid_size/2 * -i, -lift_height))
+            self.move_to(grid_center * sm.SE3(grid_size/6 * i, grid_size/2 * i, -lift_height),  qd_max=qd_max)
+            self.move_to(grid_center * sm.SE3(grid_size/6 * i, grid_size/2 * i, 0), qd_max=qd_max)
+            self.move_to(grid_center * sm.SE3(grid_size/6 * i, grid_size/2 * -i, 0), qd_max=qd_max)
+            self.move_to(grid_center * sm.SE3(grid_size/6 * i, grid_size/2 * -i, -lift_height), qd_max=qd_max)
         for i in [-1, 1]: 
-            self.move_to(grid_center * sm.SE3(grid_size/2 * -i, grid_size/6 * i, -lift_height))
-            self.move_to(grid_center * sm.SE3(grid_size/2 * -i, grid_size/6 * i, 0))
-            self.move_to(grid_center * sm.SE3(grid_size/2 * i, grid_size/6 * i, 0))
-            self.move_to(grid_center * sm.SE3(grid_size/2 * i, grid_size/6 * i, -lift_height))
-        if Trest:
+            self.move_to(grid_center * sm.SE3(grid_size/2 * -i, grid_size/6 * i, -lift_height),  qd_max=qd_max)
+            self.move_to(grid_center * sm.SE3(grid_size/2 * -i, grid_size/6 * i, 0),  qd_max=qd_max)
+            self.move_to(grid_center * sm.SE3(grid_size/2 * i, grid_size/6 * i, 0),  qd_max=qd_max)
+            self.move_to(grid_center * sm.SE3(grid_size/2 * i, grid_size/6 * i, -lift_height),  qd_max=qd_max)
+        if q_rest.any():
             #probably better to implement qrest
-            self.move_to(Trest)
+            self.move_to_q(q_rest)
 
-    def draw_x(self, center: sm.SE3, length, Trest=None, lift_height=0.01):
+    def draw_x(self, center: sm.SE3, length, q_rest=None, lift_height=0.01, qd_max=1):
         half_length = length / 2
-        self.move_to(center * sm.SE3(-half_length, -half_length, -lift_height))
-        self.move_to(center * sm.SE3(-half_length, -half_length, 0))
-        self.move_to(center * sm.SE3(half_length, half_length, 0))
-        self.move_to(center * sm.SE3(half_length, half_length, -lift_height))
+        self.move_to(center * sm.SE3(-half_length, -half_length, -lift_height), qd_max=qd_max)
+        self.move_to(center * sm.SE3(-half_length, -half_length, 0), qd_max=qd_max)
+        self.move_to(center * sm.SE3(half_length, half_length, 0), qd_max=qd_max)
+        self.move_to(center * sm.SE3(half_length, half_length, -lift_height), qd_max=qd_max)
         
-        self.move_to(center * sm.SE3(-half_length, half_length, -lift_height))
-        self.move_to(center * sm.SE3(-half_length, half_length, 0))
-        self.move_to(center * sm.SE3(half_length, -half_length, 0))
-        self.move_to(center * sm.SE3(half_length, -half_length, -lift_height))
-        if Trest:
-            self.move_to(Trest)
+        self.move_to(center * sm.SE3(-half_length, half_length, -lift_height), qd_max=qd_max)
+        self.move_to(center * sm.SE3(-half_length, half_length, 0), qd_max=qd_max)
+        self.move_to(center * sm.SE3(half_length, -half_length, 0), qd_max=qd_max)
+        self.move_to(center * sm.SE3(half_length, -half_length, -lift_height), qd_max=qd_max)
+        if q_rest.any():
+            #probably better to implement qrest
+            self.move_to_q(q_rest)
 
-    def draw_o(self, center: sm.SE3, radius, Trest=None, lift_height=0.01):
+    def draw_o(self, center: sm.SE3, radius, q_rest=None, lift_height=0.01):
         for i in range(50):
             theta = 2 * np.pi * i / 50
             T = center * sm.SE3(radius * np.cos(theta), radius * np.sin(theta), 0)
             self.move_to(T)
-        if Trest:
-            self.move_to(Trest)
+        if q_rest.any():
+            #probably better to implement qrest
+            self.move_to_q(q_rest)
 
 
-    def move_to_qr(self, q_dest, duration, n_samples=100):
-        q0 = self.robot.q
-        j_traj = rtb.jtraj(q0, q_dest, n_samples)
+    def move_to_qb(self, q_dest, duration, n_samples=100):
+        if self.api:
+            q = self.api.get_joint_positions(is_radian=True)
+            print(q)
+            self.robot.q = q
+        else:
+            q = self.robot.q
+        j_traj = rtb.jtraj(q, q_dest, n_samples)
         dt = duration/n_samples
         for qd in j_traj.qd:
             self.robot.qd = qd
             if self.api:
-                self.api.set_joint_velocity(qd, is_radian=True)
-                if not self.simulation:
-                    time.sleep(dt)
-                else:
-                    self.simulation.step(0)
+                self.api.set_joint_velocities(qd, is_radian=True)
+                time.sleep(dt)
+                if self.simulation:
+                    self.simulation.step(dt)
             else: 
                 self.simulation.step(dt)
 
-    
   
 
 table = sg.Mesh(
-    filename=str("/home/mrcyme/Documents/FARI/repositories/demo-fari-robotic-arm/robotic_arm/stand.dae"),
+    filename=str("/home/fari/Documents/demo-fari-robotic-arm/robotic_arm/stand.dae"),
     scale=(1.0,) * 3,
     color=[240, 103, 103],
 )
 
-#api = Lite6API(ip="192.168.1.159")
+api = Lite6API(ip="192.168.1.159")
+#api = None 
 table.T = table.T * sm.SE3.Tz(0.7)
 sim = swift.Swift()
 scene = [table]
 lite6 = rtb.models.URDF.Lite6()
-q_rest = [1.57067123e+00,  3.73331089e-01,  8.19877410e-01, -3.14137758e+00,
-        -4.46424801e-01, -2.70725360e-04]
-lite6.q = q_rest
 lite6.base *=  sm.SE3.Rz(90, 'deg')* sm.SE3.Tz(0.7)
-oxo_player = OXOPlayer(lite6, api=None, simulation=sim, scene=scene)
-screen_center = table.T*sm.SE3.Tx(-0.25)*sm.SE3.Tz(0.05)*sm.SE3.RPY([-180, -180, 0], order='xyz', unit='deg')
-
+q_rest = [100, -9, 50, -170 ,-40,- 190]
+q_rest = np.radians(q_rest)
+lite6.q = q_rest
+oxo_player = OXOPlayer(lite6, api=api, simulation=sim, scene=scene)
+screen_center = table.T*sm.SE3.Tx(-0.25)*sm.SE3.Tz(0.098)*sm.SE3.RPY([0, 180, 0], order='xyz', unit='deg')
 #screen_center = table.T*sm.SE3.Tx(-0.25)*sm.SE3.Tz(0.2)*sm.SE3.RPY([-180, 180, 0], order='xyz', unit='deg')
 
 # %% 
-time.sleep(2)
-print(oxo_player.robot.qr)
-q_rest = [1,  3.73331089e-01,  8.19877410e-01, -3.14137758e+00,
-        -4.46424801e-01, -2.70725360e-04]
-oxo_player.move_to_q(q_rest)
+
+q = [1.6057,-0.575,0.8727,0,1.0996,-0.0524]
+q = [100, -9, 50, -180 ,-40,- 190]
+q_rest = np.radians(q)
+print(q_rest)
 print(oxo_player.robot.q)
-#oxo_player.move_to(screen_center)
+oxo_player.move_to_q(q_rest, )
+
+#oxo_player.move_to(screen_center, qdmax = 0.2)
+
 # %%
-time.sleep(5)
-Trest = oxo_player.robot.fkine(q)
-oxo_player.draw_grid(screen_center, 0.1, qrest=qrest)
 time.sleep(1)
-oxo_player.draw_x(screen_center, 0.02, Trest=Trest)
+oxo_player.draw_grid(screen_center, 0.1, q_rest=q_rest, qd_max=1)
 time.sleep(1)
-oxo_player.draw_o(screen_center, 0.02, Trest=Trest)
+#oxo_player.draw_x(screen_center, 0.02, q_rest=q_rest)
+time.sleep(1)
+#oxo_player.draw_o(screen_center, 0.02, q_rest=q_rest)
 # %%
