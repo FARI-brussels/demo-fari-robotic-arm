@@ -218,7 +218,7 @@ oxo_player.move_to_q(q_rest, )
 time.sleep(1)
 oxo_player.draw_grid(screen_center, 0.1, q_rest=q_rest, qd_max=1)
 time.sleep(1)
-#oxo_player.draw_x(screen_center, 0.02, q_rest=q_rest)
+oxo_player.draw_x(screen_center, 0.02, q_rest=q_rest)
 time.sleep(1)
 #oxo_player.draw_o(screen_center, 0.02, q_rest=q_rest)
 # %%
